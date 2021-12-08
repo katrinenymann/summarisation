@@ -1,7 +1,7 @@
 # from https://towardsdatascience.com/understand-text-summarization-and-create-your-own-summarizer-in-python-b26a9f09fc70
 
-# coding: utf-8
 
+# coding: utf-8
 import nltk
 nltk.download('stopwords')
 from nltk.corpus import stopwords # Also contains stopwords in Danish
@@ -10,14 +10,13 @@ from nltk.corpus import stopwords # Also contains stopwords in Danish
 from nltk.cluster.util import cosine_distance
 import numpy as np
 import networkx as nx # tool for graphs
-
-file_name = "danish_text.txt"
  
+filedata = chunk['text'][3]
+
 # splits a txt file into sentences that are also tokenized
-def read_article(file_name):
-    file = open(file_name, "r")
-    filedata = file.readlines()
-    article = filedata[0].split(". ")
+def prepare_article(file):
+    article = filedata.split(". ")
+    article = filedata.split("\n\n") # I added this since it is in many of the articles instead of .
     sentences = []
 
     for sentence in article:
@@ -71,7 +70,7 @@ def generate_summary(file_name, top_n=5):
     summarize_text = []
 
     # Step 1 - Read text anc split it
-    sentences = read_article(file_name)
+    sentences = prepare_article(file_name)
 
     # Step 2 - Generate Similary Martix across sentences
     sentence_similarity_martix = build_similarity_matrix(sentences, stop_words)
@@ -82,7 +81,7 @@ def generate_summary(file_name, top_n=5):
 
     # Step 4 - Sort the rank and pick top sentences
     ranked_sentence = sorted(((scores[i],s) for i,s in enumerate(sentences)), reverse=True)    
-    print("Indexes of top ranked_sentence order are ", ranked_sentence)    
+    #print("Indexes of top ranked_sentence order are ", ranked_sentence)    
 
     for i in range(top_n):
       summarize_text.append(" ".join(ranked_sentence[i][1]))
@@ -90,22 +89,35 @@ def generate_summary(file_name, top_n=5):
     # Step 5 - Offcourse, output the summarize texr
     print("Summarize Text: \n", ". ".join(summarize_text))
 
-# Generate Danish summary of an example text
-generate_summary("danish_text.txt", 3)
+    return summarize_text
 
 
-# Making it for the danewsroom dataset - Not fixed yet -- needs to alter the read article function
+# Making it for the danewsroom dataset - problem with the iterate
 import pandas as pd
-df_iter = pd.read_csv('danewsroom.csv', chunksize=10000, iterator=True)
-
+df_iter = pd.read_csv('../../NP Exam/danewsroom.csv', chunksize=10000, iterator=True)
 
 for iter_num, chunk in enumerate(df_iter, 1):
+    iter = 220000
     print(f'Processing iteration {iter_num}')
     # do things with chunk
-    type(chunk)
-    text = chunk['text'][0]
-    #generate_summary(text, 3)
+    filedata = chunk['text'][iter]
+    filesummary = chunk['summary'][1]
 
+    # Try to remove linebreaks
+    print(filedata)
+
+    summary = generate_summary(filedata, 2) # maybe problem with the linebreak between sentences?
+    summary = " ".join(map(str, summary)) # from list of sentences to a string object
+    #generate_summary(text, 3)
+    
+    iter = 240000 + iter_num
     # break
     if iter_num == 1:
         break
+
+
+# Rouge scores
+from rouge_score import rouge_scorer
+scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
+
+scores = scorer.score(filesummary, summary)
