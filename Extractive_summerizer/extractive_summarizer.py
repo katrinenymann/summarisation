@@ -91,3 +91,19 @@ def generate_summary(file_name, top_n=5):
 # Generate Danish summary of an example text
 generate_summary("danish_text.txt", 3)
 
+
+# Making it for the danewsroom dataset - Not fixed yet -- needs to alter the read article function
+import pandas as pd
+df_iter = pd.read_csv('danewsroom.csv', chunksize=10000, iterator=True)
+
+
+for iter_num, chunk in enumerate(df_iter, 1):
+    print(f'Processing iteration {iter_num}')
+    # do things with chunk
+    type(chunk)
+    text = chunk['text'][0]
+    #generate_summary(text, 3)
+
+    # break
+    if iter_num == 1:
+        break
