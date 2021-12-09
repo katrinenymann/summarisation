@@ -11,12 +11,13 @@ from nltk.cluster.util import cosine_distance
 import numpy as np
 import networkx as nx # tool for graphs
  
-filedata = chunk['text'][3]
-
+#filedata = chunk['text'][3]
+import re
 # splits a txt file into sentences that are also tokenized
 def prepare_article(file):
+    filedata = file.replace("\n\n", ". ")
     article = filedata.split(". ")
-    article = filedata.split("\n\n") # I added this since it is in many of the articles instead of .
+    #article = filedata.split("\n\n") # I added this since it is in many of the articles instead of .
     sentences = []
 
     for sentence in article:
@@ -94,30 +95,44 @@ def generate_summary(file_name, top_n=5):
 
 # Making it for the danewsroom dataset - problem with the iterate
 import pandas as pd
-df_iter = pd.read_csv('../../NP Exam/danewsroom.csv', chunksize=10000, iterator=True)
-
-for iter_num, chunk in enumerate(df_iter, 1):
-    iter = 220000
-    print(f'Processing iteration {iter_num}')
-    # do things with chunk
-    filedata = chunk['text'][iter]
-    filesummary = chunk['summary'][1]
-
-    # Try to remove linebreaks
-    print(filedata)
-
-    summary = generate_summary(filedata, 2) # maybe problem with the linebreak between sentences?
-    summary = " ".join(map(str, summary)) # from list of sentences to a string object
-    #generate_summary(text, 3)
-    
-    iter = 240000 + iter_num
-    # break
-    if iter_num == 1:
-        break
-
 
 # Rouge scores
 from rouge_score import rouge_scorer
+
+
 scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
 
-scores = scorer.score(filesummary, summary)
+# Lists for output
+rouge_scores = []
+summaries = []
+filesummaries = []
+
+df = pd.read_csv('../../NP Exam/danewsroom.csv', chunksize=10000, iterator=True)
+
+for iter_num, chunk in enumerate(df, 1):
+    #if iter_num == 0:
+     #   chunk.reset_index(level=0, inplace=True)
+    # do things with chunk
+    filedata = chunk['text'][iter_num]
+    filesummary = chunk['summary'][iter_num]
+
+
+    summary = generate_summary(filedata, 1) 
+    summary = " ".join(map(str, summary)) # from list of sentences to a string object
+        
+    # Rouge scores
+    scores = scorer.score(filesummary, summary)
+        
+    rouge_scores.append(scores)
+    filesummaries.append(filesummary)
+    summaries.append(summary)
+    
+output =  list([rouge_scores, filesummaries, summaries])
+
+    # break
+    #if iter_num == 2:
+     #   break
+
+
+
+
