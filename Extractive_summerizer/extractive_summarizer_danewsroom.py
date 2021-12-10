@@ -24,6 +24,7 @@ def prepare_article(file):
         print(sentence)
         sentences.append(sentence.replace("[^a-zA-Z]", " ").split(" "))
     sentences.pop() 
+   
     
     return sentences
 
@@ -78,7 +79,7 @@ def generate_summary(file_name, top_n=5):
 
     # Step 3 - Rank sentences in similarity martix
     sentence_similarity_graph = nx.from_numpy_array(sentence_similarity_martix)
-    scores = nx.pagerank(sentence_similarity_graph)
+    scores = nx.pagerank(sentence_similarity_graph, max_iter=1000)
 
     # Step 4 - Sort the rank and pick top sentences
     ranked_sentence = sorted(((scores[i],s) for i,s in enumerate(sentences)), reverse=True)    
@@ -86,6 +87,7 @@ def generate_summary(file_name, top_n=5):
 
     for i in range(top_n):
       summarize_text.append(" ".join(ranked_sentence[i][1]))
+
 
     # Step 5 - Offcourse, output the summarize texr
     print("Summarize Text: \n", ". ".join(summarize_text))
@@ -107,32 +109,37 @@ rouge_scores = []
 summaries = []
 filesummaries = []
 
-df = pd.read_csv('../../NP Exam/danewsroom.csv', chunksize=10000, iterator=True)
+import csv
+#df = pd.read_csv('../../NP Exam/danewsroom.csv', chunksize=10000, iterator=True)
+df = pd.read_csv('../../NP Exam/danewsroom.csv', nrows=100)
 
-for iter_num, chunk in enumerate(df, 1):
-    #if iter_num == 0:
-     #   chunk.reset_index(level=0, inplace=True)
-    # do things with chunk
-    filedata = chunk['text'][iter_num]
-    filesummary = chunk['summary'][iter_num]
+def summarise_danewsroom(df):
+    for iter_num in range(len(df)):
+        if iter_num != 29:
+            # do things with chunk
+            filedata = df['text'][iter_num]
+            filesummary = df['summary'][iter_num]
+            
 
-
-    summary = generate_summary(filedata, 1) 
-    summary = " ".join(map(str, summary)) # from list of sentences to a string object
+            summary = generate_summary(filedata, 1) 
+            summary = " ".join(map(str, summary)) # from list of sentences to a string object
+                
+            # Rouge scores
+            scores = scorer.score(filesummary, summary)
+                
+            rouge_scores.append(scores)
+            filesummaries.append(filesummary)
+            summaries.append(summary)
+        else:
+            print("moving on")
+            continue
         
-    # Rouge scores
-    scores = scorer.score(filesummary, summary)
-        
-    rouge_scores.append(scores)
-    filesummaries.append(filesummary)
-    summaries.append(summary)
-    
-output =  list([rouge_scores, filesummaries, summaries])
-
-    # break
-    #if iter_num == 2:
-     #   break
+        # break
+        if iter_num == 100:
+            break 
+    return list([rouge_scores, filesummaries, summaries])
 
 
+output = summarise_danewsroom(df)
 
 
